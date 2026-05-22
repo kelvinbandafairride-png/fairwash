@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fair Car Wash - Sales Entry</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            background-size: 400% 400%;
+            animation: bgAnim 10s ease infinite;
+            padding: 20px;
+        }
+        @keyframes bgAnim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 700px;
+            margin: 0 auto 16px;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .top-bar h1 { color: white; font-size: 20px; }
+        .top-bar h1 span { opacity: 0.7; font-size: 14px; }
+        .top-actions { display: flex; gap: 8px; }
+        .top-actions a, .top-actions button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-dash { background: #26d0ce; color: #fff; }
+        .btn-logout { background: rgba(255,255,255,0.2); color: #fff; }
+        .btn-dash:hover, .btn-logout:hover { transform: translateY(-1px); }
+
+        .summary-card {
+            max-width: 700px;
+            margin: 0 auto 16px;
+            padding: 20px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-around;
+            backdrop-filter: blur(10px);
+        }
+        .summary-item { text-align: center; color: white; }
+        .summary-item .value { font-size: 24px; font-weight: 700; }
+        .summary-item .label { font-size: 12px; opacity: 0.7; }
+        .summary-divider { width: 1px; background: rgba(255,255,255,0.2); }
+
+        .form-card {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .form-card h2 { font-size: 18px; color: #1a2980; margin-bottom: 20px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { margin-bottom: 0; }
+        .form-group.full { grid-column: span 2; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+            background: white;
+        }
+        .form-group select:focus, .form-group input:focus { border-color: #1a2980; }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 8px;
+        }
+        .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+
+        .recent-sales {
+            max-width: 700px;
+            margin: 16px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .recent-sales h3 { font-size: 16px; color: #333; margin-bottom: 12px; }
+        .sale-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            gap: 12px;
+        }
+        .sale-item:last-child { border-bottom: none; }
+        .sale-icon { font-size: 24px; width: 36px; text-align: center; }
+        .sale-info { flex: 1; }
+        .sale-info .main { font-weight: 600; font-size: 14px; color: #333; }
+        .sale-info .sub { font-size: 12px; color: #888; }
+        .sale-amount { font-weight: 700; font-size: 16px; color: #1a2980; }
+        .sale-time { font-size: 11px; color: #aaa; text-align: right; min-width: 60px; }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        .toast.success { background: #27ae60; }
+        .toast.error { background: #e74c3c; }
+        @keyframes slideDown {
+            from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .form-group.full { grid-column: span 1; }
+            body { padding: 10px; }
+            .top-bar { flex-direction: column; gap: 10px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast"></div>
+
+    <div class="top-bar">
+        <h1>🚗 Fair Car Wash <span>Staff Panel</span></h1>
+        <div class="top-actions">
+            <a href="dashboard.html" class="btn-dash">📊 Dashboard</a>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="summary-card" id="summaryCard">
+        <div class="summary-item">
+            <div class="value" id="todayCount">0</div>
+            <div class="label">Today's Sales</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+            <div class="value" id="todayTotal">K 0</div>
+            <div class="label">Today's Total</div>
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-item">
+            <div class="value" id="allTimeTotal">K 0</div>
+            <div class="label">All Time Total</div>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <h2>➕ New Wash Entry</h2>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Vehicle Type</label>
+                <select id="vehicleType">
+                    <option value="Mid Sized">🚗 Mid Sized</option>
+                    <option value="Big">🚙 Big</option>
+                    <option value="Van">🚐 Van</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Vehicle Size</label>
+                <select id="vehicleSize">
+                    <option value="Small">Small</option>
+                    <option value="Big">Big</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Wash Type</label>
+                <select id="washType">
+                    <option value="Outside Wash">Outside Wash</option>
+                    <option value="Inside Wash">Inside Wash</option>
+                    <option value="Inside + Outside">Inside + Outside</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Wash Category</label>
+                <select id="washCategory">
+                    <option value="Basic (Outside Only)">Basic (Outside Only)</option>
+                    <option value="Standard (Outside + Basic Inside)">Standard (Outside + Basic Inside)</option>
+                    <option value="Premium (Full Inside + Outside)">Premium (Full Inside + Outside)</option>
+                    <option value="Deluxe (Complete Detail)">Deluxe (Complete Detail)</option>
+                </select>
+            </div>
+            <div class="form-group full">
+                <label>License Plate</label>
+                <input type="text" id="licensePlate" placeholder="e.g. AB 1234" style="text-transform:uppercase">
+            </div>
+            <div class="form-group">
+                <label>Car Make / Model</label>
+                <input type="text" id="carMake" placeholder="e.g. Toyota Corolla">
+            </div>
+            <div class="form-group">
+                <label>Car Color</label>
+                <input type="text" id="carColor" placeholder="e.g. White, Blue">
+            </div>
+            <div class="form-group full">
+                <label>Front Condition</label>
+                <input type="text" id="frontCondition" placeholder="e.g. Muddy, dusty, bird droppings">
+            </div>
+            <div class="form-group full">
+                <label>Back Condition</label>
+                <input type="text" id="backCondition" placeholder="e.g. Muddy, dusty, exhaust stains">
+            </div>
+            <div class="form-group full">
+                <label>Amount (ZMW/Kwacha)</label>
+                <input type="number" id="amount" placeholder="e.g. 150" step="0.01" min="0" required>
+            </div>
+        </div>
+        <button class="btn-submit" onclick="recordSale()">💾 Record Sale</button>
+    </div>
+
+    <div class="recent-sales" id="recentSales">
+        <h3>📋 Recent Sales</h3>
+        <div id="salesList"><p style="color:#999;font-size:14px;">No sales recorded yet</p></div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        let allSales = [];
+
+        function mapFromApi(s) {
+            return {
+                id: s.id,
+                vehicleType: s.vehicle_type,
+                vehicleSize: s.vehicle_size,
+                washType: s.wash_type,
+                washCategory: s.wash_category,
+                amount: s.amount,
+                timestamp: s.created_at,
+                recordedBy: s.recorded_by,
+                licensePlate: s.license_plate,
+                carMake: s.car_make,
+                carColor: s.car_color,
+                frontCondition: s.front_condition,
+                backCondition: s.back_condition
+            };
+        }
+
+        function getUser() {
+            return JSON.parse(localStorage.getItem('fairwash_user') || '{}');
+        }
+
+        async function loadSales() {
+            try {
+                const user = getUser();
+                if (!user.token) return;
+                const data = await api.getSales(user.token);
+                allSales = data.map(mapFromApi);
+                updateSummary();
+                renderRecentSales();
+            } catch (err) {
+                console.error('Failed to load sales:', err);
+            }
+        }
+
+        function getTodaySales() {
+            const today = new Date();
+            const todayStr = today.toDateString();
+            return allSales.filter(s => new Date(s.timestamp).toDateString() === todayStr);
+        }
+
+        function updateSummary() {
+            const todaySales = getTodaySales();
+            const todayTotal = todaySales.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+            const allTotal = allSales.reduce((sum, s) => sum + parseFloat(s.amount), 0);
+            document.getElementById('todayCount').textContent = todaySales.length;
+            document.getElementById('todayTotal').textContent = 'K ' + todayTotal.toFixed(2);
+            document.getElementById('allTimeTotal').textContent = 'K ' + allTotal.toFixed(2);
+        }
+
+        function renderRecentSales() {
+            const list = document.getElementById('salesList');
+            if (allSales.length === 0) {
+                list.innerHTML = '<p style="color:#999;font-size:14px;">No sales recorded yet</p>';
+                return;
+            }
+            const icons = { 'Mid Sized': '🚗', 'Big': '🚙', 'Van': '🚐' };
+            list.innerHTML = allSales.slice(0, 15).map(s => {
+                const d = new Date(s.timestamp);
+                const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const date = d.toLocaleDateString();
+                const plate = s.licensePlate || '';
+                const make = s.carMake || '';
+                const color = s.carColor || '';
+                const front = s.frontCondition || '';
+                const back = s.backCondition || '';
+                const details = [plate, make, color].filter(Boolean).join(' • ');
+                const condition = [front ? 'Front: ' + front : '', back ? 'Back: ' + back : ''].filter(Boolean).join(' | ');
+                return `<div class="sale-item">
+                    <div class="sale-icon">${icons[s.vehicleType] || '🚗'}</div>
+                    <div class="sale-info">
+                        <div class="main">${s.vehicleType} (${s.vehicleSize}) - ${s.washType}</div>
+                        <div class="sub">${s.washCategory} ${details ? '• ' + details : ''}</div>
+                        ${condition ? `<div class="sub" style="font-size:11px;color:#999;margin-top:2px;">${condition}</div>` : ''}
+                    </div>
+                    <div class="sale-amount">K ${parseFloat(s.amount).toFixed(2)}</div>
+                    <div class="sale-time">${date}<br>${time}</div>
+                </div>`;
+            }).join('');
+        }
+
+        async function recordSale() {
+            const user = getUser();
+            if (!user.token) { logout(); return; }
+
+            const vehicleType = document.getElementById('vehicleType').value;
+            const vehicleSize = document.getElementById('vehicleSize').value;
+            const washType = document.getElementById('washType').value;
+            const washCategory = document.getElementById('washCategory').value;
+            const amount = document.getElementById('amount').value;
+            const licensePlate = document.getElementById('licensePlate').value.trim().toUpperCase();
+            const carMake = document.getElementById('carMake').value.trim();
+            const carColor = document.getElementById('carColor').value.trim();
+            const frontCondition = document.getElementById('frontCondition').value.trim();
+            const backCondition = document.getElementById('backCondition').value.trim();
+
+            if (!amount || parseFloat(amount) <= 0) {
+                showToast('Please enter a valid amount', 'error');
+                return;
+            }
+
+            try {
+                const data = {
+                    vehicle_type: vehicleType,
+                    vehicle_size: vehicleSize,
+                    wash_type: washType,
+                    wash_category: washCategory,
+                    amount: parseFloat(amount),
+                    license_plate: licensePlate,
+                    car_make: carMake,
+                    car_color: carColor,
+                    front_condition: frontCondition,
+                    back_condition: backCondition
+                };
+                await api.createSale(user.token, data);
+                document.getElementById('amount').value = '';
+                document.getElementById('licensePlate').value = '';
+                document.getElementById('carMake').value = '';
+                document.getElementById('carColor').value = '';
+                document.getElementById('frontCondition').value = '';
+                document.getElementById('backCondition').value = '';
+                await loadSales();
+                showToast(`Sale recorded: K ${parseFloat(amount).toFixed(2)}`, 'success');
+            } catch (err) {
+                showToast('Failed to record sale', 'error');
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast ' + type;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        function logout() {
+            localStorage.removeItem('fairwash_user');
+            window.location.href = 'index.html';
+        }
+
+        // Auth check and load
+        (async function() {
+            const user = getUser();
+            if (!user.loggedIn || !user.token) { logout(); return; }
+            await loadSales();
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fair Car Wash - Login</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a2980, #26d0ce, #1a2980);
+            background-size: 400% 400%;
+            animation: gradientBG 8s ease infinite;
+            padding: 20px;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .login-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo h1 { font-size: 24px; color: #1a2980; margin-top: 10px; }
+        .logo p { color: #666; font-size: 14px; margin-top: 4px; }
+        .logo .icon { font-size: 48px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus { border-color: #1a2980; }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+        .btn-primary { background: linear-gradient(135deg, #1a2980, #26d0ce); color: white; }
+        .btn-secondary { background: #e8e8e8; color: #555; margin-top: 8px; }
+        .error { color: #e74c3c; font-size: 13px; text-align: center; margin-top: 12px; display: none; }
+        .role-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            font-size: 13px;
+        }
+        .role-btn.active { border-color: #1a2980; background: #f0f4ff; color: #1a2980; font-weight: 600; }
+        .role-btn:hover { border-color: #1a2980; }
+        .info-text { text-align: center; font-size: 12px; color: #999; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo">
+            <div class="icon">🚗</div>
+            <h1>Fair Car Wash</h1>
+            <p>Sales Management System</p>
+        </div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Select Role</label>
+                <div class="role-selector">
+                    <div class="role-btn active" data-role="admin" onclick="selectRole('admin')">🔑 Admin</div>
+                    <div class="role-btn" data-role="staff" onclick="selectRole('staff')">🧽 Staff</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+            <div class="error" id="errorMsg">Invalid username or password</div>
+        </form>
+        <div class="info-text">
+            Admin: admin / admin123<br>
+            Staff: staff / staff123
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        let selectedRole = 'admin';
+
+        function selectRole(role) {
+            selectedRole = role;
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.role === role);
+            });
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+
+            try {
+                const result = await api.login(username, password);
+                localStorage.setItem('fairwash_user', JSON.stringify({
+                    token: result.token,
+                    username: result.user.username,
+                    role: result.user.role,
+                    loggedIn: true,
+                    loginTime: new Date().toISOString()
+                }));
+                if (result.user.role === 'admin') {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    window.location.href = 'sales.html';
+                }
+            } catch (err) {
+                errorMsg.style.display = 'block';
+                setTimeout(() => errorMsg.style.display = 'none', 3000);
+            }
+        });
+
+        // Redirect if already logged in
+        (function() {
+            const user = JSON.parse(localStorage.getItem('fairwash_user') || '{}');
+            if (user.loggedIn && user.token) {
+                if (user.role === 'admin') window.location.href = 'dashboard.html';
+                else window.location.href = 'sales.html';
+            }
+        })();
+    </script>
+</body>
+</html>

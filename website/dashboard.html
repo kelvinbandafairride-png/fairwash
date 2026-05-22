@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fair Car Wash - Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            min-height: 100vh;
+            background: #f0f4f8;
+            padding: 20px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1100px;
+            margin: 0 auto 20px;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            border-radius: 16px;
+            color: white;
+        }
+        .top-bar h1 { font-size: 22px; }
+        .top-actions { display: flex; gap: 8px; }
+        .top-actions a, .top-actions button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-sales { background: rgba(255,255,255,0.25); color: white; }
+        .btn-logout { background: rgba(255,255,255,0.15); color: white; }
+        .btn-whatsapp { background: #25D366; color: white; }
+        .btn-sales:hover, .btn-logout:hover, .btn-whatsapp:hover { background: rgba(255,255,255,0.35); }
+        .btn-whatsapp:hover { background: #1da851; }
+
+        .grand-total {
+            max-width: 1100px;
+            margin: 0 auto 20px;
+            padding: 32px;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            border-radius: 20px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(26,41,128,0.2);
+        }
+        .grand-total .label { font-size: 14px; opacity: 0.8; }
+        .grand-total .amount { font-size: 48px; font-weight: 800; margin: 8px 0; }
+        .grand-total .sub { font-size: 14px; opacity: 0.7; }
+        .grand-total .sub span { opacity: 1; font-weight: 600; }
+
+        .filter-bar {
+            max-width: 1100px;
+            margin: 0 auto 20px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 8px 18px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .filter-btn.active { border-color: #1a2980; background: #eef2ff; color: #1a2980; font-weight: 700; }
+        .filter-btn:hover { border-color: #1a2980; }
+
+        .dashboard-grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .card h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card.full-width { grid-column: span 2; }
+
+        .breakdown-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .breakdown-item:last-child { border-bottom: none; }
+        .breakdown-item .name { flex: 1; font-size: 14px; }
+        .breakdown-item .amount { font-weight: 700; font-size: 14px; color: #1a2980; min-width: 80px; text-align: right; }
+        .breakdown-item .pct { font-size: 13px; color: #888; min-width: 50px; text-align: right; }
+        .bar-container { height: 6px; background: #eef2ff; border-radius: 3px; margin-top: 4px; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, #1a2980, #26d0ce); border-radius: 3px; transition: width 0.5s; }
+
+        .sales-table-wrap { overflow-x: auto; }
+        .sales-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .sales-table th {
+            text-align: left;
+            padding: 10px 8px;
+            border-bottom: 2px solid #eee;
+            color: #666;
+            font-weight: 600;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .sales-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .sales-table tr:hover { background: #fafafa; }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .tag-car { background: #e8f4fd; color: #2980b9; }
+        .tag-van { background: #fef3e2; color: #e67e22; }
+        .tag-truck { background: #fde8e8; color: #c0392b; }
+
+        @media (max-width: 700px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .card.full-width { grid-column: span 1; }
+            .grand-total .amount { font-size: 32px; }
+            body { padding: 10px; }
+            .top-bar { flex-direction: column; gap: 10px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <h1>🚗 Fair Car Wash Admin</h1>
+        <div class="top-actions">
+            <a href="sales.html" class="btn-sales">➕ New Sale</a>
+            <button class="btn-whatsapp" onclick="shareToWhatsApp()">📤 WhatsApp</button>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="grand-total" id="grandTotal">
+        <div class="label">GRAND TOTAL REVENUE</div>
+        <div class="amount" id="grandTotalAmount">K 0.00</div>
+        <div class="sub"><span id="totalCount">0</span> sales recorded</div>
+    </div>
+
+    <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" data-filter="today" onclick="setFilter('today')">Today</button>
+        <button class="filter-btn" data-filter="week" onclick="setFilter('week')">This Week</button>
+        <button class="filter-btn" data-filter="month" onclick="setFilter('month')">This Month</button>
+        <button class="filter-btn" data-filter="all" onclick="setFilter('all')">All Time</button>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>🚗 By Vehicle Type</h3>
+            <div id="vehicleBreakdown"></div>
+        </div>
+        <div class="card">
+            <h3>🧽 By Wash Type</h3>
+            <div id="washTypeBreakdown"></div>
+        </div>
+        <div class="card">
+            <h3>📋 By Wash Category</h3>
+            <div id="categoryBreakdown"></div>
+        </div>
+        <div class="card">
+            <h3>📏 By Vehicle Size</h3>
+            <div id="sizeBreakdown"></div>
+        </div>
+        <div class="card full-width">
+            <h3>📊 All Sales Records</h3>
+            <div class="sales-table-wrap" id="allSalesTable"></div>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        let currentFilter = 'today';
+        let allSales = [];
+
+        function getUser() {
+            return JSON.parse(localStorage.getItem('fairwash_user') || '{}');
+        }
+
+        function mapFromApi(s) {
+            return {
+                id: s.id, vehicleType: s.vehicle_type, vehicleSize: s.vehicle_size,
+                washType: s.wash_type, washCategory: s.wash_category,
+                amount: s.amount, timestamp: s.created_at,
+                recordedBy: s.recorded_by, licensePlate: s.license_plate,
+                carMake: s.car_make, carColor: s.car_color,
+                frontCondition: s.front_condition, backCondition: s.back_condition
+            };
+        }
+
+        async function loadSales() {
+            try {
+                const user = getUser();
+                if (!user.token) return;
+                const data = await api.getSales(user.token);
+                allSales = data.map(mapFromApi);
+            } catch (err) {
+                console.error('Failed to load sales:', err);
+            }
+        }
+
+        function renderBreakdown(containerId, data, total) {
+            const container = document.getElementById(containerId);
+            const entries = Object.entries(data).sort((a,b) => b[1] - a[1]);
+            if (entries.length === 0) {
+                container.innerHTML = '<p style="color:#999;font-size:13px;">No data</p>';
+                return;
+            }
+            container.innerHTML = entries.map(([name, amount]) => {
+                const pct = total > 0 ? (amount / total * 100) : 0;
+                return `<div class="breakdown-item">
+                    <div class="name">${name}</div>
+                    <div class="amount">K ${amount.toFixed(2)}</div>
+                    <div class="pct">${pct.toFixed(1)}%</div>
+                </div>
+                <div class="bar-container"><div class="bar-fill" style="width:${pct}%"></div></div>`;
+            }).join('');
+        }
+
+        function renderSalesTable(sales) {
+            const container = document.getElementById('allSalesTable');
+            if (sales.length === 0) {
+                container.innerHTML = '<p style="color:#999;font-size:14px;">No sales records</p>';
+                return;
+            }
+            const tagClass = { 'Mid Sized': 'tag-car', 'Big': 'tag-truck', 'Van': 'tag-van' };
+            let html = `<table class="sales-table">
+                <thead><tr>
+                    <th>#</th>
+                    <th>Plate</th>
+                    <th>Vehicle</th>
+                    <th>Size</th>
+                    <th>Make/Model</th>
+                    <th>Color</th>
+                    <th>Wash Type</th>
+                    <th>Category</th>
+                    <th>Front</th>
+                    <th>Back</th>
+                    <th>Amount</th>
+                    <th>Staff</th>
+                    <th>Date/Time</th>
+                </tr></thead><tbody>`;
+            sales.forEach((s, i) => {
+                const d = new Date(s.timestamp);
+                html += `<tr>
+                    <td>${i + 1}</td>
+                    <td style="font-weight:600;font-size:12px;">${s.licensePlate || '-'}</td>
+                    <td><span class="tag ${tagClass[s.vehicleType] || 'tag-car'}">${s.vehicleType}</span></td>
+                    <td>${s.vehicleSize}</td>
+                    <td style="font-size:12px;">${s.carMake || '-'}</td>
+                    <td style="font-size:12px;">${s.carColor || '-'}</td>
+                    <td>${s.washType}</td>
+                    <td style="font-size:12px;">${s.washCategory}</td>
+                    <td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.frontCondition || ''}">${s.frontCondition || '-'}</td>
+                    <td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.backCondition || ''}">${s.backCondition || '-'}</td>
+                    <td><strong>K ${parseFloat(s.amount).toFixed(2)}</strong></td>
+                    <td>${s.recordedBy || 'staff'}</td>
+                    <td style="font-size:11px;">${d.toLocaleDateString()}<br>${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function updateDashboard() {
+            const user = getUser();
+            if (!user.token) return;
+            const summary = await api.getSummary(user.token, currentFilter);
+            const allData = await api.getSales(user.token);
+            allSales = allData.map(mapFromApi);
+
+            const total = summary.total;
+            document.getElementById('grandTotalAmount').textContent = 'K ' + total.toFixed(2);
+            document.getElementById('totalCount').textContent = summary.count;
+
+            const toMap = (arr) => { const m = {}; arr.forEach(x => { m[x.name] = x.total; }); return m; };
+            renderBreakdown('vehicleBreakdown', toMap(summary.breakdowns.vehicleType), total);
+            renderBreakdown('washTypeBreakdown', toMap(summary.breakdowns.washType), total);
+            renderBreakdown('categoryBreakdown', toMap(summary.breakdowns.category), total);
+            renderBreakdown('sizeBreakdown', toMap(summary.breakdowns.vehicleSize), total);
+
+            renderSalesTable(allSales.slice(0, 100));
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+            updateDashboard();
+        }
+
+        async function shareToWhatsApp() {
+            const user = getUser();
+            if (!user.token) return;
+            const allData = await api.getSales(user.token);
+            const allSales = allData.map(mapFromApi);
+            if (allSales.length === 0) { alert('No sales to share'); return; }
+
+            const now = new Date();
+            const todaySales = allSales.filter(s => new Date(s.timestamp).toDateString() === now.toDateString());
+            const todayTotal = todaySales.reduce((s, v) => s + parseFloat(v.amount), 0);
+            const allTotal = allSales.reduce((s, v) => s + parseFloat(v.amount), 0);
+
+            function groupBy(arr, key) {
+                const m = {}; arr.forEach(s => {
+                    const k = s[key]; m[k] = (m[k] || 0) + parseFloat(s.amount);
+                }); return m;
+            }
+            const byType = groupBy(allSales, 'vehicleType');
+            const byWash = groupBy(allSales, 'washType');
+            const byCat = groupBy(allSales, 'washCategory');
+
+            const d = now.toLocaleDateString();
+            const t = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+            let report = '🚗 *FAIR CAR WASH SALES REPORT* 🚗\n';
+            report += '━━━━━━━━━━━━━━━━━━━━\n';
+            report += '📅 Date: ' + d + '\n⏰ Time: ' + t + '\n';
+            report += '━━━━━━━━━━━━━━━━━━━━\n\n';
+            report += '📊 *TODAY*\n• Count: ' + todaySales.length + '\n• Total: K ' + todayTotal.toFixed(2) + '\n\n';
+            report += '📈 *ALL TIME*\n• Sales: ' + allSales.length + '\n• Total: K ' + allTotal.toFixed(2) + '\n\n';
+
+            report += '🚙 *BY VEHICLE*\n';
+            Object.entries(byType).forEach(([k,v]) => { report += '• ' + k + ': K ' + v.toFixed(2) + '\n'; });
+            report += '\n🧽 *BY WASH TYPE*\n';
+            Object.entries(byWash).forEach(([k,v]) => { report += '• ' + k + ': K ' + v.toFixed(2) + '\n'; });
+            report += '\n📋 *BY CATEGORY*\n';
+            Object.entries(byCat).forEach(([k,v]) => { report += '• ' + k + ': K ' + v.toFixed(2) + '\n'; });
+
+            if (todaySales.length > 0) {
+                report += '\n📝 *TODAY DETAILS*\n';
+                todaySales.slice(0, 10).forEach((s, i) => {
+                    const sd = new Date(s.timestamp);
+                    const st = sd.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+                    report += (i+1) + '. ' + s.vehicleType + ' | ' + s.washType + ' | K ' + parseFloat(s.amount).toFixed(2) + ' | ' + st + '\n';
+                    if (s.licensePlate) report += '   Plate: ' + s.licensePlate + '\n';
+                });
+            }
+            report += '\n━━━━━━━━━━━━━━━━━━━━\n✅ Generated by Fair Car Wash';
+
+            window.open('https://wa.me/260977161191?text=' + encodeURIComponent(report), '_blank');
+        }
+
+        function logout() {
+            localStorage.removeItem('fairwash_user');
+            window.location.href = 'index.html';
+        }
+
+        // Auth check and load
+        (async function() {
+            const user = getUser();
+            if (!user.loggedIn || !user.token || user.role !== 'admin') { logout(); return; }
+            await updateDashboard();
+        })();
+    </script>
+</body>
+</html>
