@@ -173,22 +173,6 @@
     </div>
 
     <div class="dashboard-grid">
-        <div class="card">
-            <h3>🚗 By Vehicle Type</h3>
-            <div id="vehicleBreakdown"></div>
-        </div>
-        <div class="card">
-            <h3>🧽 By Wash Type</h3>
-            <div id="washTypeBreakdown"></div>
-        </div>
-        <div class="card">
-            <h3>📋 By Wash Category</h3>
-            <div id="categoryBreakdown"></div>
-        </div>
-        <div class="card">
-            <h3>📏 By Vehicle Size</h3>
-            <div id="sizeBreakdown"></div>
-        </div>
         <div class="card full-width">
             <h3>📊 All Sales Records</h3>
             <div class="sales-table-wrap" id="allSalesTable"></div>
@@ -206,12 +190,9 @@
 
         function mapFromApi(s) {
             return {
-                id: s.id, vehicleType: s.vehicle_type, vehicleSize: s.vehicle_size,
-                washType: s.wash_type, washCategory: s.wash_category,
+                id: s.id,
                 amount: s.amount, timestamp: s.created_at,
-                recordedBy: s.recorded_by, licensePlate: s.license_plate,
-                carMake: s.car_make, carColor: s.car_color,
-                frontCondition: s.front_condition, backCondition: s.back_condition
+                recordedBy: s.recorded_by
             };
         }
 
@@ -250,19 +231,9 @@
                 container.innerHTML = '<p style="color:#999;font-size:14px;">No sales records</p>';
                 return;
             }
-            const tagClass = { 'Mid Sized': 'tag-car', 'Big': 'tag-truck', 'Van': 'tag-van' };
             let html = `<table class="sales-table">
                 <thead><tr>
                     <th>#</th>
-                    <th>Plate</th>
-                    <th>Vehicle</th>
-                    <th>Size</th>
-                    <th>Make/Model</th>
-                    <th>Color</th>
-                    <th>Wash Type</th>
-                    <th>Category</th>
-                    <th>Front</th>
-                    <th>Back</th>
                     <th>Amount</th>
                     <th>Staff</th>
                     <th>Date/Time</th>
@@ -271,15 +242,6 @@
                 const d = new Date(s.timestamp);
                 html += `<tr>
                     <td>${i + 1}</td>
-                    <td style="font-weight:600;font-size:12px;">${s.licensePlate || '-'}</td>
-                    <td><span class="tag ${tagClass[s.vehicleType] || 'tag-car'}">${s.vehicleType}</span></td>
-                    <td>${s.vehicleSize}</td>
-                    <td style="font-size:12px;">${s.carMake || '-'}</td>
-                    <td style="font-size:12px;">${s.carColor || '-'}</td>
-                    <td>${s.washType}</td>
-                    <td style="font-size:12px;">${s.washCategory}</td>
-                    <td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.frontCondition || ''}">${s.frontCondition || '-'}</td>
-                    <td style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${s.backCondition || ''}">${s.backCondition || '-'}</td>
                     <td><strong>K ${parseFloat(s.amount).toFixed(2)}</strong></td>
                     <td>${s.recordedBy || 'staff'}</td>
                     <td style="font-size:11px;">${d.toLocaleDateString()}<br>${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</td>
@@ -299,12 +261,6 @@
             const total = summary.total;
             document.getElementById('grandTotalAmount').textContent = 'K ' + total.toFixed(2);
             document.getElementById('totalCount').textContent = summary.count;
-
-            const toMap = (arr) => { const m = {}; arr.forEach(x => { m[x.name] = x.total; }); return m; };
-            renderBreakdown('vehicleBreakdown', toMap(summary.breakdowns.vehicleType), total);
-            renderBreakdown('washTypeBreakdown', toMap(summary.breakdowns.washType), total);
-            renderBreakdown('categoryBreakdown', toMap(summary.breakdowns.category), total);
-            renderBreakdown('sizeBreakdown', toMap(summary.breakdowns.vehicleSize), total);
 
             renderSalesTable(allSales.slice(0, 100));
         }
@@ -329,15 +285,6 @@
             const todayTotal = todaySales.reduce((s, v) => s + parseFloat(v.amount), 0);
             const allTotal = allSales.reduce((s, v) => s + parseFloat(v.amount), 0);
 
-            function groupBy(arr, key) {
-                const m = {}; arr.forEach(s => {
-                    const k = s[key]; m[k] = (m[k] || 0) + parseFloat(s.amount);
-                }); return m;
-            }
-            const byType = groupBy(allSales, 'vehicleType');
-            const byWash = groupBy(allSales, 'washType');
-            const byCat = groupBy(allSales, 'washCategory');
-
             const d = now.toLocaleDateString();
             const t = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 
@@ -348,20 +295,12 @@
             report += '📊 *TODAY*\n• Count: ' + todaySales.length + '\n• Total: K ' + todayTotal.toFixed(2) + '\n\n';
             report += '📈 *ALL TIME*\n• Sales: ' + allSales.length + '\n• Total: K ' + allTotal.toFixed(2) + '\n\n';
 
-            report += '🚙 *BY VEHICLE*\n';
-            Object.entries(byType).forEach(([k,v]) => { report += '• ' + k + ': K ' + v.toFixed(2) + '\n'; });
-            report += '\n🧽 *BY WASH TYPE*\n';
-            Object.entries(byWash).forEach(([k,v]) => { report += '• ' + k + ': K ' + v.toFixed(2) + '\n'; });
-            report += '\n📋 *BY CATEGORY*\n';
-            Object.entries(byCat).forEach(([k,v]) => { report += '• ' + k + ': K ' + v.toFixed(2) + '\n'; });
-
             if (todaySales.length > 0) {
                 report += '\n📝 *TODAY DETAILS*\n';
                 todaySales.slice(0, 10).forEach((s, i) => {
                     const sd = new Date(s.timestamp);
                     const st = sd.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-                    report += (i+1) + '. ' + s.vehicleType + ' | ' + s.washType + ' | K ' + parseFloat(s.amount).toFixed(2) + ' | ' + st + '\n';
-                    if (s.licensePlate) report += '   Plate: ' + s.licensePlate + '\n';
+                    report += (i+1) + '. K ' + parseFloat(s.amount).toFixed(2) + ' | ' + st + '\n';
                 });
             }
             report += '\n━━━━━━━━━━━━━━━━━━━━\n✅ Generated by Fair Car Wash';

@@ -1,45 +1,85 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-
-// Change this to your deployed Railway URL when live
-const String baseUrl = 'http://10.0.2.2:3000';
+import '../models/sale.dart';
 
 class ApiService {
-  static Future<Map<String, dynamic>> login(String username, String password) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
-    );
-    if (res.statusCode != 200) throw Exception('Invalid credentials');
-    return jsonDecode(res.body);
+  static String? _baseUrl;
+  static String? _token;
+  static String? _username;
+  static String? _role;
+
+  static bool get isConfigured => _baseUrl != null && _baseUrl!.isNotEmpty;
+
+  static void configure(String baseUrl) {
+    _baseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
   }
 
-  static Future<List<dynamic>> getSales(String token) async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/sales'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    if (res.statusCode != 200) throw Exception('Failed to load sales');
-    return jsonDecode(res.body);
+  static Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    if (_token != null) 'Authorization': 'Bearer $_token',
+  };
+
+  static Future<bool> login(String username, String password) async {
+    if (_baseUrl == null) return false;
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'username': username, 'password': password}),
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        _token = data['token'];
+        _username = data['user']['username'];
+        _role = data['user']['role'];
+        return true;
+      }
+    } catch (e) {
+      debugPrint('API login error: $e');
+    }
+    return false;
   }
 
-  static Future<Map<String, dynamic>> createSale(String token, Map<String, dynamic> data) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/sales'),
-      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
-      body: jsonEncode(data),
-    );
-    if (res.statusCode != 201) throw Exception('Failed to create sale');
-    return jsonDecode(res.body);
+  static Future<List<Sale>> fetchSales() async {
+    if (_token == null) return [];
+    try {
+      final res = await http.get(Uri.parse('$_baseUrl/api/sales'), headers: _headers);
+      if (res.statusCode == 200) {
+        final list = jsonDecode(res.body) as List;
+        return list.map((e) => Sale(
+          id: e['id'].toString(),
+          amount: (e['amount'] as num).toDouble(),
+          timestamp: DateTime.parse(e['created_at'] ?? DateTime.now().toIso8601String()),
+        )).toList();
+      }
+    } catch (e) {
+      debugPrint('API fetch error: $e');
+    }
+    return [];
   }
 
-  static Future<Map<String, dynamic>> getSummary(String token, {String period = 'all'}) async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/sales/summary?period=$period'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    if (res.statusCode != 200) throw Exception('Failed to load summary');
-    return jsonDecode(res.body);
+  static Future<bool> addSale(Sale sale) async {
+    if (_token == null) return false;
+    try {
+      final res = await http.post(
+        Uri.parse('$_baseUrl/api/sales'),
+        headers: _headers,
+        body: jsonEncode({'amount': sale.amount}),
+      );
+      return res.statusCode == 201;
+    } catch (e) {
+      debugPrint('API add error: $e');
+      return false;
+    }
   }
+
+  static void logout() {
+    _token = null;
+    _username = null;
+    _role = null;
+  }
+
+  static String? get username => _username;
+  static String? get role => _role;
 }

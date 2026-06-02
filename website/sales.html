@@ -191,58 +191,6 @@
     <div class="form-card">
         <h2>➕ New Wash Entry</h2>
         <div class="form-grid">
-            <div class="form-group">
-                <label>Vehicle Type</label>
-                <select id="vehicleType">
-                    <option value="Mid Sized">🚗 Mid Sized</option>
-                    <option value="Big">🚙 Big</option>
-                    <option value="Van">🚐 Van</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Vehicle Size</label>
-                <select id="vehicleSize">
-                    <option value="Small">Small</option>
-                    <option value="Big">Big</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Wash Type</label>
-                <select id="washType">
-                    <option value="Outside Wash">Outside Wash</option>
-                    <option value="Inside Wash">Inside Wash</option>
-                    <option value="Inside + Outside">Inside + Outside</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Wash Category</label>
-                <select id="washCategory">
-                    <option value="Basic (Outside Only)">Basic (Outside Only)</option>
-                    <option value="Standard (Outside + Basic Inside)">Standard (Outside + Basic Inside)</option>
-                    <option value="Premium (Full Inside + Outside)">Premium (Full Inside + Outside)</option>
-                    <option value="Deluxe (Complete Detail)">Deluxe (Complete Detail)</option>
-                </select>
-            </div>
-            <div class="form-group full">
-                <label>License Plate</label>
-                <input type="text" id="licensePlate" placeholder="e.g. AB 1234" style="text-transform:uppercase">
-            </div>
-            <div class="form-group">
-                <label>Car Make / Model</label>
-                <input type="text" id="carMake" placeholder="e.g. Toyota Corolla">
-            </div>
-            <div class="form-group">
-                <label>Car Color</label>
-                <input type="text" id="carColor" placeholder="e.g. White, Blue">
-            </div>
-            <div class="form-group full">
-                <label>Front Condition</label>
-                <input type="text" id="frontCondition" placeholder="e.g. Muddy, dusty, bird droppings">
-            </div>
-            <div class="form-group full">
-                <label>Back Condition</label>
-                <input type="text" id="backCondition" placeholder="e.g. Muddy, dusty, exhaust stains">
-            </div>
             <div class="form-group full">
                 <label>Amount (ZMW/Kwacha)</label>
                 <input type="number" id="amount" placeholder="e.g. 150" step="0.01" min="0" required>
@@ -263,18 +211,9 @@
         function mapFromApi(s) {
             return {
                 id: s.id,
-                vehicleType: s.vehicle_type,
-                vehicleSize: s.vehicle_size,
-                washType: s.wash_type,
-                washCategory: s.wash_category,
                 amount: s.amount,
                 timestamp: s.created_at,
-                recordedBy: s.recorded_by,
-                licensePlate: s.license_plate,
-                carMake: s.car_make,
-                carColor: s.car_color,
-                frontCondition: s.front_condition,
-                backCondition: s.back_condition
+                recordedBy: s.recorded_by
             };
         }
 
@@ -316,24 +255,14 @@
                 list.innerHTML = '<p style="color:#999;font-size:14px;">No sales recorded yet</p>';
                 return;
             }
-            const icons = { 'Mid Sized': '🚗', 'Big': '🚙', 'Van': '🚐' };
             list.innerHTML = allSales.slice(0, 15).map(s => {
                 const d = new Date(s.timestamp);
                 const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const date = d.toLocaleDateString();
-                const plate = s.licensePlate || '';
-                const make = s.carMake || '';
-                const color = s.carColor || '';
-                const front = s.frontCondition || '';
-                const back = s.backCondition || '';
-                const details = [plate, make, color].filter(Boolean).join(' • ');
-                const condition = [front ? 'Front: ' + front : '', back ? 'Back: ' + back : ''].filter(Boolean).join(' | ');
                 return `<div class="sale-item">
-                    <div class="sale-icon">${icons[s.vehicleType] || '🚗'}</div>
+                    <div class="sale-icon">🚗</div>
                     <div class="sale-info">
-                        <div class="main">${s.vehicleType} (${s.vehicleSize}) - ${s.washType}</div>
-                        <div class="sub">${s.washCategory} ${details ? '• ' + details : ''}</div>
-                        ${condition ? `<div class="sub" style="font-size:11px;color:#999;margin-top:2px;">${condition}</div>` : ''}
+                        <div class="main">Car Wash</div>
                     </div>
                     <div class="sale-amount">K ${parseFloat(s.amount).toFixed(2)}</div>
                     <div class="sale-time">${date}<br>${time}</div>
@@ -345,16 +274,7 @@
             const user = getUser();
             if (!user.token) { logout(); return; }
 
-            const vehicleType = document.getElementById('vehicleType').value;
-            const vehicleSize = document.getElementById('vehicleSize').value;
-            const washType = document.getElementById('washType').value;
-            const washCategory = document.getElementById('washCategory').value;
             const amount = document.getElementById('amount').value;
-            const licensePlate = document.getElementById('licensePlate').value.trim().toUpperCase();
-            const carMake = document.getElementById('carMake').value.trim();
-            const carColor = document.getElementById('carColor').value.trim();
-            const frontCondition = document.getElementById('frontCondition').value.trim();
-            const backCondition = document.getElementById('backCondition').value.trim();
 
             if (!amount || parseFloat(amount) <= 0) {
                 showToast('Please enter a valid amount', 'error');
@@ -363,24 +283,10 @@
 
             try {
                 const data = {
-                    vehicle_type: vehicleType,
-                    vehicle_size: vehicleSize,
-                    wash_type: washType,
-                    wash_category: washCategory,
-                    amount: parseFloat(amount),
-                    license_plate: licensePlate,
-                    car_make: carMake,
-                    car_color: carColor,
-                    front_condition: frontCondition,
-                    back_condition: backCondition
+                    amount: parseFloat(amount)
                 };
                 await api.createSale(user.token, data);
                 document.getElementById('amount').value = '';
-                document.getElementById('licensePlate').value = '';
-                document.getElementById('carMake').value = '';
-                document.getElementById('carColor').value = '';
-                document.getElementById('frontCondition').value = '';
-                document.getElementById('backCondition').value = '';
                 await loadSales();
                 showToast(`Sale recorded: K ${parseFloat(amount).toFixed(2)}`, 'success');
             } catch (err) {

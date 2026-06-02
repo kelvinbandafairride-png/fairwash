@@ -25,8 +25,8 @@ router.get('/filter', authenticate, async (req, res) => {
 });
 
 router.post('/', authenticate, async (req, res) => {
-  const { vehicle_type, vehicle_size, wash_type, wash_category, amount } = req.body;
-  if (!vehicle_type || !vehicle_size || !wash_type || !wash_category || amount === undefined) {
+  const { amount } = req.body;
+  if (amount === undefined) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
   try {

@@ -45,13 +45,8 @@ async function initDb() {
     `);
     await pgPool.query(`
       CREATE TABLE IF NOT EXISTS sales (
-        id SERIAL PRIMARY KEY, vehicle_type VARCHAR(50) NOT NULL,
-        vehicle_size VARCHAR(20) NOT NULL, wash_type VARCHAR(50) NOT NULL,
-        wash_category VARCHAR(100) NOT NULL, amount DECIMAL(10,2) NOT NULL,
-        license_plate VARCHAR(20) DEFAULT '', car_make VARCHAR(100) DEFAULT '',
-        car_color VARCHAR(50) DEFAULT '', front_condition TEXT DEFAULT '',
-        back_condition TEXT DEFAULT '', front_image TEXT DEFAULT '',
-        back_image TEXT DEFAULT '', recorded_by VARCHAR(50) DEFAULT 'staff',
+        id SERIAL PRIMARY KEY, amount DECIMAL(10,2) NOT NULL,
+        recorded_by VARCHAR(50) DEFAULT 'staff',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -129,30 +124,19 @@ async function getFilteredSales(period) {
 }
 
 async function createSale(data) {
-  const { vehicle_type, vehicle_size, wash_type, wash_category, amount,
-    license_plate, car_make, car_color, front_condition, back_condition,
-    front_image, back_image, recorded_by } = data;
+  const { amount, recorded_by } = data;
 
   if (usePg) {
     const { rows } = await pgPool.query(
-      `INSERT INTO sales (vehicle_type, vehicle_size, wash_type, wash_category, amount,
-        license_plate, car_make, car_color, front_condition, back_condition,
-        front_image, back_image, recorded_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [vehicle_type, vehicle_size, wash_type, wash_category, parseFloat(amount),
-       license_plate || '', car_make || '', car_color || '',
-       front_condition || '', back_condition || '',
-       front_image || '', back_image || '', recorded_by]
+      `INSERT INTO sales (amount, recorded_by) VALUES ($1,$2) RETURNING *`,
+      [parseFloat(amount), recorded_by]
     );
     return rows[0];
   }
 
   const sale = {
-    id: jsonDb.nextSaleId++, vehicle_type, vehicle_size, wash_type, wash_category,
-    amount: parseFloat(amount), license_plate: license_plate || '',
-    car_make: car_make || '', car_color: car_color || '',
-    front_condition: front_condition || '', back_condition: back_condition || '',
-    front_image: front_image || '', back_image: back_image || '',
+    id: jsonDb.nextSaleId++,
+    amount: parseFloat(amount),
     recorded_by, created_at: new Date().toISOString()
   };
   jsonDb.sales.push(sale);
@@ -163,34 +147,13 @@ async function createSale(data) {
 async function getSummary(period) {
   if (usePg) {
     const clause = getDateClause(period);
-    const [tr, vt, wt, ct, vs] = await Promise.all([
-      pgPool.query(`SELECT COALESCE(SUM(amount),0)::float as total, COUNT(*)::int as count FROM sales ${clause}`),
-      pgPool.query(`SELECT vehicle_type as name, COUNT(*)::int as count, SUM(amount)::float as total FROM sales ${clause} GROUP BY vehicle_type ORDER BY total DESC`),
-      pgPool.query(`SELECT wash_type as name, COUNT(*)::int as count, SUM(amount)::float as total FROM sales ${clause} GROUP BY wash_type ORDER BY total DESC`),
-      pgPool.query(`SELECT wash_category as name, COUNT(*)::int as count, SUM(amount)::float as total FROM sales ${clause} GROUP BY wash_category ORDER BY total DESC`),
-      pgPool.query(`SELECT vehicle_size as name, COUNT(*)::int as count, SUM(amount)::float as total FROM sales ${clause} GROUP BY vehicle_size ORDER BY total DESC`)
-    ]);
-    return {
-      total: tr.rows[0].total, count: tr.rows[0].count,
-      breakdowns: { vehicleType: vt.rows, washType: wt.rows, category: ct.rows, vehicleSize: vs.rows }
-    };
+    const { rows } = await pgPool.query(`SELECT COALESCE(SUM(amount),0)::float as total, COUNT(*)::int as count FROM sales ${clause}`);
+    return { total: rows[0].total, count: rows[0].count };
   }
 
   const filtered = filterJsonSales(jsonDb.sales, period);
   const total = filtered.reduce((s, v) => s + v.amount, 0);
-  const group = (key) => {
-    const m = {}; filtered.forEach(s => {
-      const k = s[key]; if (!m[k]) m[k] = { name: k, count: 0, total: 0 };
-      m[k].count++; m[k].total += s.amount;
-    }); return Object.values(m);
-  };
-  return {
-    total, count: filtered.length,
-    breakdowns: {
-      vehicleType: group('vehicle_type'), washType: group('wash_type'),
-      category: group('wash_category'), vehicleSize: group('vehicle_size')
-    }
-  };
+  return { total, count: filtered.length };
 }
 
 module.exports = { initDb, findUser, getAllSales, getFilteredSales, createSale, getSummary };
