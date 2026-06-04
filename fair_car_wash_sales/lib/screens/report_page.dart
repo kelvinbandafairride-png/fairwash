@@ -4,6 +4,7 @@ import '../models/sale.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
 import 'login_page.dart';
+import 'sales_history_page.dart';
 
 class ReportPage extends StatefulWidget {
   final String role;
@@ -61,6 +62,7 @@ class _ReportPageState extends State<ReportPage> {
         title: Text('Sales Report · ${widget.username}'),
         actions: [
           IconButton(icon: const Icon(Icons.share, color: Color(0xFF25D366)), onPressed: _shareToWhatsApp, tooltip: 'Share via WhatsApp'),
+          IconButton(icon: const Icon(Icons.history), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SalesHistoryPage(role: widget.role, username: widget.username))), tooltip: 'History'),
           IconButton(icon: const Icon(Icons.refresh), onPressed: () => _loadSales(), tooltip: 'Refresh'),
           IconButton(icon: const Icon(Icons.logout), onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginPage())), tooltip: 'Logout'),
         ],
@@ -130,11 +132,14 @@ class _ReportPageState extends State<ReportPage> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('Car Wash', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(sale.carType, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text('$day/$month $hour:$min', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                  ]),
                 ),
                 Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Text('K ${sale.amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blue)),
-                  Text('$day/$month $hour:$min', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                  if (sale.imagePath != null) const Icon(Icons.image, size: 14, color: Colors.grey),
                 ]),
               ]),
             ),

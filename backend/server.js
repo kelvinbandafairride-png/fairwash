@@ -24,6 +24,7 @@ initDb().then(() => {
     console.log(`   Website:  http://localhost:${PORT}\n`);
   });
 }).catch(err => {
-  console.error('Failed to initialize database:', err);
+  console.error('Failed to initialize database:', err.message);
+  console.error('DATABASE_URL set?', !!process.env.DATABASE_URL);
   process.exit(1);
 });

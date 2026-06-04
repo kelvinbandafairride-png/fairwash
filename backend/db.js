@@ -9,7 +9,8 @@ if (usePg) {
   const { Pool } = require('pg');
   pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: { rejectUnauthorized: false },
+    family: 4
   });
 }
 
